@@ -2,17 +2,32 @@ import { useState } from "react";
 import { createTenant } from "../services/tenantService";
 
 function TenantCreationPage() {
+    // ==================================================
+    // Form Data
+    // ==================================================
     const [formData, setFormData] = useState({
-                                        name: "",
-                                        domain: ""
-                                    });
+        name: "",
+        domain: ""
+    });
 
+    // ==================================================
+    // Loading State
+    // ==================================================
     const [loading, setLoading] = useState(false);
 
+    // ==================================================
+    // Error State
+    // ==================================================
     const [error, setError] = useState("");
 
+    // ==================================================
+    // Tenant Creation Result
+    // ==================================================
     const [result, setResult] = useState(null);
 
+    // ==================================================
+    // Handle Input Change
+    // ==================================================
     const handleChange = (event) => {
         const {
             name,
@@ -27,31 +42,108 @@ function TenantCreationPage() {
         );
     };
 
+    // ==================================================
+    // Generate Production Tenant URL
+    // ==================================================
+
+    const getTenantApplicationUrl = (tenant) => {
+        // ------------------------------------------
+        // Prefer identifier returned by backend
+        // ------------------------------------------
+        let identifier = tenant?.identifier;
+
+        // ------------------------------------------
+        // Fallback
+        // ------------------------------------------
+        //
+        // If identifier is not available,
+        // convert:
+        //
+        // bb.local
+        //
+        // to:
+        //
+        // bb
+        //
+
+        if (!identifier && tenant?.domain) {
+
+            identifier =
+                tenant.domain
+                    .replace(".local", "")
+                    .replace(
+                        ".mytenantdemo.site",
+                        ""
+                    )
+                    .trim()
+                    .toLowerCase();
+        }
+
+        // ------------------------------------------
+        // Production URL
+        // ------------------------------------------
+
+        return `https://${identifier}.mytenantdemo.site`;
+    };
+
+    // ==================================================
+    // Handle Submit
+    // ==================================================
+
     const handleSubmit = async (event) => {
+
         event.preventDefault();
+
         setError("");
+
         setResult(null);
+
+        // ------------------------------------------
+        // Validation
+        // ------------------------------------------
 
         if (
             !formData.name.trim() ||
             !formData.domain.trim()
         ) {
-            setError("Company name and domain are required.");
+
+            setError(
+                "Company name and domain are required."
+            );
+
             return;
         }
 
         try {
+
             setLoading(true);
+
+            // ------------------------------------------
+            // Create Tenant
+            // ------------------------------------------
 
             const data =
                 await createTenant({
-                    name: formData.name.trim(),
-                    domain: formData.domain
+
+                    name:
+                        formData.name.trim(),
+
+                    domain:
+                        formData.domain
                             .trim()
                             .toLowerCase()
+
                 });
 
+            // ------------------------------------------
+            // Store Result
+            // ------------------------------------------
+
             setResult(data);
+
+            // ------------------------------------------
+            // Reset Form
+            // ------------------------------------------
 
             setFormData({
                 name: "",
@@ -59,7 +151,11 @@ function TenantCreationPage() {
             });
 
         } catch (error) {
-            console.error("Create tenant error:", error);
+
+            console.error(
+                "Create tenant error:",
+                error
+            );
 
             setError(
                 error.response?.data?.message ||
@@ -67,28 +163,69 @@ function TenantCreationPage() {
             );
 
         } finally {
+
             setLoading(false);
         }
     };
 
+    // ==================================================
+    // Tenant Application URL
+    // ==================================================
+    const tenantApplicationUrl =
+        result?.tenant
+            ? getTenantApplicationUrl(
+                result.tenant
+            )
+            : "";
+    // ==================================================
+    // Render
+    // ==================================================
+
     return (
         <div className="central-page">
             <div className="central-card">
+                {/* ======================================
+                    Header
+                ====================================== */}
                 <div className="central-header">
-                    <h1>Create Tenant</h1>
-                    <p>Create a new tenant application</p>
+                    <h1>
+                        Create Tenant
+                    </h1>
+                    <p>
+                        Create a new tenant application
+                    </p>
                 </div>
 
-                {!result && (
-                    <form onSubmit={handleSubmit} className="central-form">
-                        {error && (
-                            <div className="page-error">
-                                {error}
-                            </div>
-                        )}
+                {/* ======================================
+                    Create Tenant Form
+                ====================================== */}
 
+                {!result && (
+                    <form
+                        onSubmit={handleSubmit}
+                        className="central-form"
+                    >
+                        {/* ----------------------------------
+                            Error
+                        ---------------------------------- */}
+                        {error && (
+
+                            <div className="page-error">
+
+                                {error}
+
+                            </div>
+
+                        )}
+                        {/* ----------------------------------
+                            Company Name
+                        ---------------------------------- */}
                         <div className="form-group">
-                            <label>Company Name</label>
+
+                            <label>
+                                Company Name
+                            </label>
+
                             <input
                                 type="text"
                                 name="name"
@@ -102,9 +239,14 @@ function TenantCreationPage() {
                                 disabled={loading}
                             />
                         </div>
+                        {/* ----------------------------------
+                            Domain
+                        ---------------------------------- */}
 
                         <div className="form-group">
-                            <label>Domain</label>
+                            <label>
+                                Domain
+                            </label>
                             <input
                                 type="text"
                                 name="domain"
@@ -118,7 +260,9 @@ function TenantCreationPage() {
                                 disabled={loading}
                             />
                         </div>
-
+                        {/* ----------------------------------
+                            Submit
+                        ---------------------------------- */}
                         <button
                             type="submit"
                             className="primary-button"
@@ -128,59 +272,111 @@ function TenantCreationPage() {
                                 ? "Creating Tenant..."
                                 : "Create Tenant"
                             }
+
                         </button>
                     </form>
                 )}
 
+                {/* ======================================
+                    Success
+                ====================================== */}
+
                 {result && (
                     <div className="tenant-success">
-                        <h2>Tenant Created Successfully</h2>
-
+                        <h2>
+                            Tenant Created Successfully
+                        </h2>
+                        {/* ----------------------------------
+                            Tenant Details
+                        ---------------------------------- */}
                         <div className="tenant-details">
                             <p>
-                                <strong>Company:</strong>
+                                <strong>
+                                    Company:
+                                </strong>
+
                                 {" "}
                                 {result.tenant.name}
                             </p>
 
                             <p>
-                                <strong>Domain:</strong>
+                                <strong>
+                                    Identifier:
+                                </strong>
+                                {" "}
+                                {result.tenant.identifier}
+                            </p>
+
+                            <p>
+
+                                <strong>
+                                    Domain:
+                                </strong>
                                 {" "}
                                 {result.tenant.domain}
                             </p>
 
                             <p>
-                                <strong>Database:</strong>
+                                <strong>
+                                    Database:
+                                </strong>
                                 {" "}
+
                                 {result.tenant.databaseName}
                             </p>
                         </div>
+                        {/* ----------------------------------
+                            Admin Login
+                        ---------------------------------- */}
 
                         <div className="admin-details">
-                            <h3>Demo Admin Login</h3>
+                            <h3>
+                                Admin Login
+                            </h3>
 
                             <p>
-                                <strong>Username:</strong>
+                                <strong>
+                                    Username:
+                                </strong>
                                 {" "}
                                 {result.admin.username}
                             </p>
                             <p>
-                                <strong>Password:</strong>
+                                <strong> Password:</strong>
                                 {" "}
                                 {result.admin.password}
                             </p>
                         </div>
 
+                        {/* ----------------------------------
+                            Tenant Application
+                        ---------------------------------- */}
+
                         <div className="tenant-login">
-                            <p>Tenant Application:</p>
-                            <a href={`http://${result.tenant.domain}:5173`}>
-                                http://{result.tenant.domain}:5173
+                            <p>
+                                <strong>
+                                    Tenant Application:
+                                </strong>
+                            </p>
+                            <a
+                                href={
+                                    tenantApplicationUrl
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >{tenantApplicationUrl}
                             </a>
                         </div>
 
-                        <button className="primary-button"
+                        {/* ----------------------------------
+                            Create Another Tenant
+                        ---------------------------------- */}
+                        <button
+                            type="button"
+                            className="primary-button"
                             onClick={() => {
                                 setResult(null);
+                                setError("");
                             }}
                         >Create Another Tenant
                         </button>
