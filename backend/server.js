@@ -61,6 +61,10 @@ const allowedOrigins = (
 // CORS Origin Validation
 // ==================================================
 
+// ==================================================
+// CORS Origin Validation
+// ==================================================
+
 const isAllowedOrigin = (origin) => {
 
     // Allow requests without an Origin header.
@@ -72,23 +76,39 @@ const isAllowedOrigin = (origin) => {
         return true;
     }
 
-    // Allow configured origins from environment variables.
+    // --------------------------------------------------
+    // 1. Allow origins configured in Render environment
+    // --------------------------------------------------
+
     if (allowedOrigins.includes(origin)) {
         return true;
     }
 
-    // Allow localhost during local development.
+    // --------------------------------------------------
+    // 2. Allow localhost
+    // --------------------------------------------------
+
     if (origin === "http://localhost:5173") {
         return true;
     }
 
-    // Allow local tenant domains during development.
+    if (origin === "http://127.0.0.1:5173") {
+        return true;
+    }
+
+    // --------------------------------------------------
+    // 3. Allow local tenant domains
+    // --------------------------------------------------
     //
-    // Example:
+    // Examples:
+    //
     // http://bb.local:5173
     // http://pqr.local:5173
     // http://xyz.local:5173
+    //
+
     try {
+
         const url = new URL(origin);
 
         if (
@@ -98,9 +118,62 @@ const isAllowedOrigin = (origin) => {
         ) {
             return true;
         }
+
     } catch (error) {
+
         return false;
     }
+
+    // --------------------------------------------------
+    // 4. Allow production root domain
+    // --------------------------------------------------
+    //
+    // https://mytenantdemo.site
+    // https://www.mytenantdemo.site
+    //
+
+    if (
+        origin === "https://mytenantdemo.site" ||
+        origin === "https://www.mytenantdemo.site"
+    ) {
+        return true;
+    }
+
+    // --------------------------------------------------
+    // 5. Allow production tenant subdomains
+    // --------------------------------------------------
+    //
+    // Examples:
+    //
+    // https://abc.mytenantdemo.site
+    // https://pqr.mytenantdemo.site
+    // https://xyz.mytenantdemo.site
+    //
+    // This allows ONLY one subdomain level.
+    //
+
+    try {
+
+        const url = new URL(origin);
+
+        const isProductionTenantDomain =
+            url.protocol === "https:" &&
+            /^[a-z0-9-]+\.mytenantdemo\.site$/i.test(
+                url.hostname
+            );
+
+        if (isProductionTenantDomain) {
+            return true;
+        }
+
+    } catch (error) {
+
+        return false;
+    }
+
+    // --------------------------------------------------
+    // Origin not allowed
+    // --------------------------------------------------
 
     return false;
 };
