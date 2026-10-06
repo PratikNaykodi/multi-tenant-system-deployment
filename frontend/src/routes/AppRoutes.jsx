@@ -1,40 +1,136 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "../features/auth/pages/LoginPage";
-import DashboardLayout from "../layouts/DashboardLayout";
-import DashboardPage from "../pages/DashboardPage";
-import NotFoundPage from "../pages/NotFoundPage";
-import ProtectedRoute from "./ProtectedRoute";
-import UsersPage from "../features/users/pages/UsersPage";
-import PermissionRoute from "./PermissionRoute";
-import EmployeesPage from "../features/employees/pages/EmployeesPage";
-import TenantCreationPage from "../features/tenants/pages/TenantCreationPage";
-import AppointmentsPage from "../features/appointments/pages/AppointmentsPage";
-import ProfilePage from "../features/profile/pages/ProfilePage";
+import {
+    Routes,
+    Route,
+    Navigate
+} from "react-router-dom";
+
+import LoginPage
+    from "../features/auth/pages/LoginPage";
+
+import DashboardLayout
+    from "../layouts/DashboardLayout";
+
+import DashboardPage
+    from "../pages/DashboardPage";
+
+import NotFoundPage
+    from "../pages/NotFoundPage";
+
+import ProtectedRoute
+    from "./ProtectedRoute";
+
+import UsersPage
+    from "../features/users/pages/UsersPage";
+
+import PermissionRoute
+    from "./PermissionRoute";
+
+import EmployeesPage
+    from "../features/employees/pages/EmployeesPage";
+
+import TenantCreationPage
+    from "../features/tenants/pages/TenantCreationPage";
+
+import AppointmentsPage
+    from "../features/appointments/pages/AppointmentsPage";
+
+import ProfilePage
+    from "../features/profile/pages/ProfilePage";
+
 
 function AppRoutes() {
-    const isCentralApplication = window.location.hostname === "localhost";
+    // =========================================================
+    // CURRENT HOSTNAME
+    // =========================================================
+    const hostname = window.location.hostname.toLowerCase();
+
+    // =========================================================
+    // CENTRAL APPLICATION
+    //
+    // Production:
+    // https://mytenantdemo.site
+    //
+    // Local:
+    // http://localhost:5173
+    // =========================================================
+    const isCentralApplication =
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname === "mytenantdemo.site";
+
+    // =========================================================
+    // TENANT APPLICATION
+    //
+    // Production examples:
+    //
+    // https://abc.mytenantdemo.site
+    // https://pqr.mytenantdemo.site
+    //
+    // Local example:
+    //
+    // http://pqr.local:5173
+    // =========================================================
+    const isTenantApplication =
+        !isCentralApplication;
 
     return (
         <Routes>
-            {/* =========================================
+            {/* =================================================
                 CENTRAL APPLICATION
-                http://localhost:5173/
-            ========================================= */}
+                =================================================
+
+                Production:
+                https://mytenantdemo.site
+
+                Local:
+                http://localhost:5173
+
+                This application is responsible for
+                creating tenants.
+            ================================================= */}
             {isCentralApplication && (
-                <Route
-                    path="/"
-                    element={
-                        <TenantCreationPage />
-                    }
-                />
+                <>
+                    {/* Central Home */}
+                    <Route
+                        path="/"
+                        element={
+                            <TenantCreationPage />
+                        }
+                    />
+
+                    {/* If someone opens /login on the
+                        central domain, send them back
+                        to tenant creation. */}
+                    <Route
+                        path="/login"
+                        element={
+                            <Navigate
+                                to="/"
+                                replace
+                            />
+                        }
+                    />
+                </>
             )}
 
-            {/* =========================================
+            {/* =================================================
                 TENANT APPLICATION
-                http://pqr.local:5173/
-            ========================================= */}
-            {!isCentralApplication && (
+                =================================================
+
+                Examples:
+
+                https://abc.mytenantdemo.site
+                https://pqr.mytenantdemo.site
+
+                Local:
+
+                http://pqr.local:5173
+            ================================================= */}
+            {isTenantApplication && (
                 <>
+                    {/* =========================================
+                        TENANT LOGIN
+                    ========================================= */}
                     <Route
                         path="/login"
                         element={
@@ -42,6 +138,19 @@ function AppRoutes() {
                         }
                     />
 
+                    {/* =========================================
+                        TENANT ROOT
+
+                        If user opens:
+
+                        https://abc.mytenantdemo.site
+
+                        send them to dashboard.
+
+                        ProtectedRoute will check authentication.
+                        If not logged in, it should redirect
+                        to /login.
+                    ========================================= */}
                     <Route
                         path="/"
                         element={
@@ -52,6 +161,9 @@ function AppRoutes() {
                         }
                     />
 
+                    {/* =========================================
+                        PROTECTED APPLICATION
+                    ========================================= */}
                     <Route
                         element={
                             <ProtectedRoute>
@@ -59,8 +171,9 @@ function AppRoutes() {
                             </ProtectedRoute>
                         }
                     >
-
-                        {/* Dashboard */}
+                        {/* =====================================
+                            DASHBOARD
+                        ===================================== */}
                         <Route
                             path="/dashboard"
                             element={
@@ -68,7 +181,9 @@ function AppRoutes() {
                             }
                         />
 
-                        {/* Users */}
+                        {/* =====================================
+                            USERS
+                        ===================================== */}
                         <Route
                             path="/users"
                             element={
@@ -80,6 +195,9 @@ function AppRoutes() {
                             }
                         />
 
+                        {/* =====================================
+                            APPOINTMENTS
+                        ===================================== */}
                         <Route
                             path="/appointments"
                             element={
@@ -91,7 +209,9 @@ function AppRoutes() {
                             }
                         />
 
-                        {/* Employees */}
+                        {/* =====================================
+                            EMPLOYEES
+                        ===================================== */}
                         <Route
                             path="/employees"
                             element={
@@ -103,6 +223,9 @@ function AppRoutes() {
                             }
                         />
 
+                        {/* =====================================
+                            PROFILE
+                        ===================================== */}
                         <Route
                             path="/profile"
                             element={
@@ -113,9 +236,9 @@ function AppRoutes() {
                 </>
             )}
 
-            {/* =========================================
+            {/* =================================================
                 NOT FOUND
-            ========================================= */}
+            ================================================= */}
             <Route
                 path="*"
                 element={
