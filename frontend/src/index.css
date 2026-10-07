@@ -1212,3 +1212,78 @@ input {
 .tenant-login a:hover {
     text-decoration: underline;
 }
+
+.domain-label-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.domain-label-row label {
+    margin-bottom: 0;
+}
+
+.domain-help {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: help;
+}
+
+.domain-help i {
+    font-size: 15px;
+    color: #6b7280;
+}
+
+.domain-help:hover i {
+    color: #2563eb;
+}
+
+.domain-tooltip {
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 310px;
+    padding: 10px 12px;
+    background: #222;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
+
+.domain-help:hover .domain-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.domain-input-wrapper {
+    display: flex;
+    width: 100%;
+}
+
+.domain-input-wrapper input {
+    flex: 1;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.domain-suffix {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-left: 0;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    color: #6b7280;
+    font-size: 14px;
+    white-space: nowrap;
+}

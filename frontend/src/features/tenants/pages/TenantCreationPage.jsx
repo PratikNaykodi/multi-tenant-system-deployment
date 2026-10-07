@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { createTenant } from "../services/tenantService";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
 function TenantCreationPage() {
     // ==================================================
@@ -235,7 +237,7 @@ function TenantCreationPage() {
                                 onChange={
                                     handleChange
                                 }
-                                placeholder="ABC Company"
+                                placeholder="Enter clinic name"
                                 disabled={loading}
                             />
                         </div>
@@ -244,21 +246,44 @@ function TenantCreationPage() {
                         ---------------------------------- */}
 
                         <div className="form-group">
-                            <label>
-                                Domain
-                            </label>
-                            <input
-                                type="text"
-                                name="domain"
-                                value={
-                                    formData.domain
-                                }
-                                onChange={
-                                    handleChange
-                                }
-                                placeholder="abc.local"
-                                disabled={loading}
-                            />
+
+                            <div className="domain-label-row">
+
+                                <label htmlFor="domain">
+                                    Domain
+                                </label>
+
+                                <span className="domain-help">
+                                    <FontAwesomeIcon icon={faCircleInfo} />
+                                    <span className="domain-tooltip">
+                                        Enter only your domain name, for example
+                                        <strong> bb</strong>.
+                                        Your application URL will be
+                                        <strong> https://bb.mytenantdemo.site</strong>.
+                                    </span>
+
+                                </span>
+
+                            </div>
+
+                            <div className="domain-input-wrapper">
+
+                                <input
+                                    id="domain"
+                                    type="text"
+                                    name="domain"
+                                    value={formData.domain}
+                                    onChange={handleChange}
+                                    placeholder="Enter domain name"
+                                    disabled={loading}
+                                />
+
+                                <span className="domain-suffix">
+                                    .mytenantdemo.site
+                                </span>
+
+                            </div>
+
                         </div>
                         {/* ----------------------------------
                             Submit
