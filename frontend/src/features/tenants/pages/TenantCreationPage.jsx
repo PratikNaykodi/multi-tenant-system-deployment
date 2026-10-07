@@ -108,7 +108,7 @@ function TenantCreationPage() {
         ) {
 
             setError(
-                "Company name and domain are required."
+                "Clinic name and domain are required."
             );
 
             return;
@@ -218,12 +218,12 @@ function TenantCreationPage() {
 
                         )}
                         {/* ----------------------------------
-                            Company Name
+                            Clinic Name
                         ---------------------------------- */}
                         <div className="form-group">
 
                             <label>
-                                Company Name
+                                Clinic Name
                             </label>
 
                             <input

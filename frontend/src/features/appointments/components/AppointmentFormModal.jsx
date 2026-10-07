@@ -190,9 +190,7 @@ const AppointmentFormModal = ({
             onClose();
 
         } catch (error) {
-            toast.error(
-                error.message || "Failed to save appointment"
-            );
+            
             setError(
                 error.response?.data?.message ||
                 "Unable to save appointment"
@@ -304,6 +302,7 @@ const AppointmentFormModal = ({
                                     onChange={
                                         handleChange
                                     }
+                                    min={new Date().toISOString().split("T")[0]}
                                 />
                             </div>
 

@@ -396,7 +396,7 @@ export const getAppointments = async (req, res) => {
                 a.id,
                 a.provider_id,
                 a.patient_id,
-                a.appointment_date,
+                TO_CHAR(a.appointment_date, 'YYYY-MM-DD') AS appointment_date,
                 a.start_time,
                 a.end_time,
                 a.status,
@@ -603,7 +603,7 @@ export const getAppointment = async (
 
                 a.patient_id,
 
-                a.appointment_date,
+                TO_CHAR(a.appointment_date, 'YYYY-MM-DD') AS appointment_date,
 
                 a.start_time,
 
