@@ -1,8 +1,27 @@
+
 {
-  "name":"multi-tenant-backend-mvc",
-  "version":"1.0.0",
-  "type":"module",
-  "scripts":{"dev":"node --watch server.js","start":"node server.js","prisma:generate":"prisma generate --schema=prisma/central/schema.prisma && prisma generate --schema=prisma/tenant/schema.prisma","prisma:validate":"prisma validate --schema=prisma/tenant/schema.prisma"},
-  "dependencies":{"@prisma/adapter-pg":"7.10.0","@prisma/client":"7.10.0","bcryptjs":"^3.0.2","cors":"^2.8.5","dotenv":"^17.2.2","express":"^5.1.0","jsonwebtoken":"^9.0.2","pg":"^8.16.3","socket.io":"^4.8.1"},
-  "devDependencies":{"prisma":"7.10.0"}
+  "name": "multi-tenant-backend-mvc",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "prisma:generate": "prisma generate --schema=prisma/central/schema.prisma && prisma generate --schema=prisma/tenant/schema.prisma",
+    "prisma:validate": "prisma validate --schema=prisma/tenant/schema.prisma",
+    "prisma:central:migrate": "prisma migrate deploy --schema=prisma/central/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "prisma": "7.10.0"
+  }
 }
