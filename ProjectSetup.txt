@@ -1,0 +1,649 @@
+MULTI-TENANT SYSTEM
+Frontend + Backend Setup Guide
+Node.js + Express + Prisma 7 + PostgreSQL + React + Vite
+
+1. PROJECT STRUCTURE
+====================
+Create:
+D:\Pratik Workspace\Nodejs\multi-tenant-system-deployment
+
+Structure:
+multi-tenant-system-deployment/
+├── backend/
+└── frontend/
+
+2. PREREQUISITES
+================
+Check:
+node -v
+npm -v
+psql --version
+
+Recommended Node.js: 24.x
+
+3. CREATE PROJECT
+=================
+cd "D:\Pratik Workspace\Nodejs"
+mkdir multi-tenant-system-deployment
+cd multi-tenant-system-deployment
+mkdir backend
+npm create vite@latest frontend -- --template react
+
+cd frontend
+npm install
+npm run dev
+
+Frontend:
+http://localhost:5173
+
+
+
+4. BACKEND SETUP
+================
+cd ..
+cd backend
+npm init -y
+
+5. BACKEND PACKAGES
+===================
+npm install express
+npm install pg
+npm install cors
+npm install dotenv
+npm install bcryptjs
+npm install jsonwebtoken
+npm install socket.io
+npm install @casl/ability
+
+6. PRISMA 7
+===========
+npm install prisma@7 --save-dev
+npm install @prisma/client@7
+npm install @prisma/adapter-pg
+
+Check:
+npx prisma -v
+
+Prisma CLI and Client should both be 7.x.
+
+7. BACKEND package.json
+=======================
+Use:
+{
+  "name": "multi-tenant-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  }
+}
+
+8. INITIALIZE PRISMA
+====================
+npx prisma init
+
+Expected:
+backend/
+├── prisma/
+│   └── schema.prisma
+├── prisma.config.ts
+└── package.json
+
+9. prisma.config.ts
+===================
+File: backend/prisma.config.ts
+
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+    schema: "prisma/schema.prisma",
+    migrations: {
+        path: "prisma/migrations"
+    },
+    datasource: {
+        url: env("DATABASE_URL")
+    }
+});
+
+Prisma 7 uses prisma.config.ts for DATABASE_URL.
+
+10. CENTRAL DATABASE
+====================
+Create PostgreSQL database:
+multitenant_central
+
+Example:
+postgresql://postgres:YOUR_PASSWORD@localhost:5432/multitenant_central
+
+11. BACKEND .env
+================
+File: backend/.env
+
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/multitenant_central"
+PORT=5000
+JWT_SECRET="your-super-secret-jwt-key"
+ENCRYPTION_KEY="your-64-character-encryption-key"
+ALLOWED_ORIGINS="http://localhost:5173"
+
+Do not commit .env to GitHub.
+
+12. CENTRAL PRISMA SCHEMA
+========================
+File: backend/prisma/schema.prisma
+
+generator client {
+    provider = "prisma-client"
+    output   = "../generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model Tenant {
+    id           Int      @id @default(autoincrement())
+    name         String
+    domain       String   @unique
+    identifier   String   @unique
+    databaseName String
+    createdAt    DateTime @default(now())
+}
+
+13. PRISMA VALIDATION
+=====================
+npx prisma validate
+npx prisma generate
+
+14. CREATE MIGRATION
+====================
+npx prisma migrate dev --name init
+npx prisma migrate status
+
+15. BACKEND FOLDERS
+===================
+Create:
+mkdir config
+mkdir controllers
+mkdir middleware
+mkdir routes
+mkdir services
+mkdir utils
+mkdir generated
+
+Structure:
+backend/
+├── config/
+│   ├── centralDatabase.js
+│   └── tenantDatabase.js
+├── controllers/
+├── middleware/
+├── routes/
+├── services/
+├── utils/
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+├── generated/
+├── prisma.config.ts
+├── server.js
+├── package.json
+└── .env
+
+16. centralDatabase.js
+======================
+File: backend/config/centralDatabase.js
+
+import pg from "pg";
+import "dotenv/config";
+
+const { Pool } = pg;
+
+export const centralDb = new Pool({
+    connectionString: process.env.DATABASE_URL
+});
+
+centralDb.on("error", (error) => {
+    console.error("Unexpected central database error:", error);
+});
+
+17. tenantDatabase.js
+=====================
+File: backend/config/tenantDatabase.js
+
+import pg from "pg";
+
+const { Pool } = pg;
+
+export const createTenantDatabase = ({
+    host,
+    port,
+    user,
+    password,
+    database
+}) => {
+    return new Pool({
+        host,
+        port,
+        user,
+        password,
+        database
+    });
+};
+
+18. BASIC server.js
+===================
+File: backend/server.js
+
+import express from "express";
+import cors from "cors";
+import http from "http";
+import "dotenv/config";
+
+const app = express();
+const server = http.createServer(app);
+
+app.use(
+    cors({
+        origin: process.env.ALLOWED_ORIGINS,
+        credentials: true
+    })
+);
+
+app.use(express.json());
+
+app.get("/", (req, res) => {
+    res.json({
+        message: "Multi-Tenant API is running"
+    });
+});
+
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
+
+19. TEST BACKEND
+================
+npm run dev
+
+Open:
+http://localhost:5000
+
+Expected:
+{"message":"Multi-Tenant API is running"}
+
+20. FRONTEND PACKAGES
+=====================
+cd ..\frontend
+
+npm install axios
+npm install react-router-dom
+npm install socket.io-client
+npm install @fortawesome/fontawesome-svg-core @fortawesome/free-solid-svg-icons @fortawesome/react-fontawesome
+
+21. FRONTEND STRUCTURE
+======================
+frontend/src/
+├── components/
+├── context/
+├── features/
+│   ├── auth/
+│   │   ├── pages/
+│   │   └── services/
+│   ├── tenants/
+│   │   ├── pages/
+│   │   └── services/
+│   ├── users/
+│   ├── employees/
+│   └── appointments/
+├── layouts/
+├── routes/
+├── services/
+├── utils/
+├── App.jsx
+└── main.jsx
+
+22. FRONTEND .env
+=================
+File: frontend/.env
+
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_SOCKET_URL=http://localhost:5000
+
+Vite variables must start with VITE_.
+
+23. AXIOS SERVICE
+=================
+File: frontend/src/services/api.js
+
+import axios from "axios";
+
+const api = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL,
+    headers: {
+        "Content-Type": "application/json"
+    }
+});
+
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("token");
+        const tenantId = localStorage.getItem("tenantId");
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        if (tenantId) {
+            config.headers["x-tenant-id"] = tenantId;
+        }
+
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+export default api;
+
+24. TENANT UTILITY
+==================
+File: frontend/src/utils/tenant.js
+
+export const getTenantIdentifier = () => {
+    const hostname = window.location.hostname.toLowerCase();
+
+    if (
+        hostname === "localhost" ||
+        hostname === "127.0.0.1"
+    ) {
+        return null;
+    }
+
+    const parts = hostname.split(".");
+
+    if (
+        parts.length >= 3 &&
+        parts.slice(-2).join(".") === "mytenantdemo.site"
+    ) {
+        return parts[0];
+    }
+
+    return null;
+};
+
+Example:
+bb.mytenantdemo.site -> bb
+
+25. LOGIN SERVICE
+=================
+File: frontend/src/features/auth/services/authService.js
+
+import api from "../../../services/api";
+
+export const login = async (email, password, tenantId) => {
+    const response = await api.post(
+        "/auth/login",
+        {
+            email,
+            password
+        },
+        {
+            headers: {
+                "x-tenant-id": tenantId
+            }
+        }
+    );
+
+    return response.data;
+};
+
+26. REACT ROUTER
+================
+File: frontend/src/routes/AppRoutes.jsx
+
+import {
+    BrowserRouter,
+    Routes,
+    Route
+} from "react-router-dom";
+
+function AppRoutes() {
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route
+                    path="/"
+                    element={<h1>Multi-Tenant System</h1>}
+                />
+            </Routes>
+        </BrowserRouter>
+    );
+}
+
+export default AppRoutes;
+
+27. App.jsx
+===========
+File: frontend/src/App.jsx
+
+import AppRoutes from "./routes/AppRoutes";
+
+function App() {
+    return <AppRoutes />;
+}
+
+export default App;
+
+28. TEST FRONTEND
+=================
+npm run dev
+
+Open:
+http://localhost:5173
+
+Expected:
+Multi-Tenant System
+
+29. SOCKET.IO FRONTEND
+======================
+File: frontend/src/services/socket.js
+
+import { io } from "socket.io-client";
+
+const socket = io(
+    import.meta.env.VITE_SOCKET_URL,
+    {
+        autoConnect: false,
+        transports: ["websocket", "polling"]
+    }
+);
+
+export default socket;
+
+Connect after tenant login:
+socket.connect();
+
+30. SOCKET.IO BACKEND
+=====================
+Later in server.js:
+
+import { Server } from "socket.io";
+
+const io = new Server(server, {
+    cors: {
+        origin: process.env.ALLOWED_ORIGINS,
+        credentials: true
+    }
+});
+
+io.on("connection", (socket) => {
+    console.log("Socket connected:", socket.id);
+
+    socket.on("disconnect", () => {
+        console.log("Socket disconnected:", socket.id);
+    });
+});
+
+31. APPOINTMENT SOCKET ROOM
+===========================
+io.to(
+    `tenant_${tenantId}_provider_${providerId}`
+).emit(
+    "appointment-created",
+    appointment
+);
+
+32. ALL BACKEND PACKAGES
+========================
+cd backend
+
+npm install express pg cors dotenv bcryptjs jsonwebtoken socket.io @casl/ability @prisma/client@7 @prisma/adapter-pg
+
+npm install prisma@7 --save-dev
+
+33. ALL FRONTEND PACKAGES
+=========================
+cd frontend
+
+npm install axios react-router-dom socket.io-client @fortawesome/fontawesome-svg-core @fortawesome/free-solid-svg-icons @fortawesome/react-fontawesome
+
+34. VERIFY VERSIONS
+===================
+Backend:
+cd backend
+node -v
+npm -v
+npx prisma -v
+
+Frontend:
+cd frontend
+npm list axios react-router-dom socket.io-client
+
+35. FINAL PROJECT STRUCTURE
+===========================
+multi-tenant-system-deployment/
+├── backend/
+│   ├── config/
+│   │   ├── centralDatabase.js
+│   │   └── tenantDatabase.js
+│   ├── controllers/
+│   ├── middleware/
+│   ├── routes/
+│   ├── services/
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── migrations/
+│   ├── generated/
+│   ├── prisma.config.ts
+│   ├── server.js
+│   ├── package.json
+│   └── .env
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── features/
+│   │   │   ├── auth/
+│   │   │   ├── tenants/
+│   │   │   ├── users/
+│   │   │   ├── employees/
+│   │   │   └── appointments/
+│   │   ├── layouts/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── utils/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   ├── vite.config.js
+│   └── .env
+├── .gitignore
+└── README.md
+
+36. COMPLETE DEVELOPMENT FLOW
+=============================
+1. Install Node.js
+2. Install PostgreSQL
+3. Create project
+4. Create backend
+5. Create React frontend
+6. Install Express
+7. Install PostgreSQL pg driver
+8. Install CORS
+9. Install dotenv
+10. Install bcryptjs
+11. Install JWT
+12. Install Socket.IO
+13. Install CASL
+14. Install Prisma 7
+15. Install Prisma Client 7
+16. Install Prisma PostgreSQL adapter
+17. Run prisma init
+18. Configure prisma.config.ts
+19. Create central PostgreSQL database
+20. Create backend .env
+21. Create central Prisma schema
+22. Run prisma validate
+23. Run prisma generate
+24. Run prisma migrate dev
+25. Create backend folders
+26. Configure central database
+27. Configure tenant database
+28. Create Express server
+29. Test backend
+30. Install frontend packages
+31. Create frontend structure
+32. Create frontend .env
+33. Configure Axios
+34. Configure tenant detection
+35. Configure login
+36. Configure React Router
+37. Configure Socket.IO
+38. Create tenant
+39. Create tenant database
+40. Create tenant tables
+41. Login tenant user
+42. Generate JWT
+43. Implement CRUD
+44. Implement appointments
+45. Implement Socket.IO updates
+46. Test with Postman
+47. Push to GitHub
+48. Deploy backend
+49. Deploy frontend
+50. Configure custom domain
+51. Configure wildcard tenant domain
+
+IMPORTANT ARCHITECTURE NOTE
+===========================
+This project uses database-per-tenant architecture.
+
+Central database:
+multitenant_central
+
+Tenant databases:
+tenant_abc
+tenant_bb
+tenant_xyz
+
+Each tenant database stores its own:
+users
+roles
+permissions
+employees
+appointments
+and other tenant-specific data.
+
+No tenantId column is required inside tenant tables because each
+tenant already has a separate database.
+
+Prisma 7 can manage the central schema and migrations.
+
+The existing raw pg-based tenant database connection can remain
+in place for tenant isolation. Do not replace the working tenant
+database layer unnecessarily.
+
+END OF GUIDE

@@ -1,24 +1,21 @@
 import express from "express";
-
-import {
-    getRoles
-} from "../controllers/roleController.js";
-
-import {
-    authMiddleware
-} from "../middleware/authMiddleware.js";
-
-import {
-    tenantMiddleware
-} from "../middleware/tenantMiddleware.js";
-
-const router = express.Router();
-
-router.get(
+import * as c from "../controllers/Role/roleController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { tenantMiddleware } from "../middleware/tenantMiddleware.js";
+import { requirePermission } from "../middleware/permissionMiddleware.js";
+const r = express.Router();
+r.get(
     "/",
-    tenantMiddleware,
     authMiddleware,
-    getRoles
+    tenantMiddleware,
+    requirePermission("user.read"),
+    c.list,
 );
-
-export default router;
+r.get(
+    "/:id",
+    authMiddleware,
+    tenantMiddleware,
+    requirePermission("user.read"),
+    c.show,
+);
+export default r;

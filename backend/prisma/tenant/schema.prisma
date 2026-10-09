@@ -1,30 +1,81 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../../generated/tenant"
+    provider = "prisma-client"
+    output   = "../../generated/tenant"
 }
-
 datasource db {
-  provider = "postgresql"
+    provider = "postgresql"
 }
-
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-
-  employees Employee[]
+    id          Int       @id @default(autoincrement())
+    name        String
+    email       String    @unique
+    password    String
+    roleId      Int       @map("role_id")
+    createdAt   DateTime  @default(now()) @map("created_at")
+    role        Role      @relation(fields: [roleId], references: [id])
+    provider    Provider?
+    patient     Patient?
+    @@map("users")
 }
-
-model Employee {
-  id         Int      @id @default(autoincrement())
-  name       String
-  email      String   @unique
-  department String
-  salary     Float
-  createdAt  DateTime @default(now())
-
-  userId     Int?
-  user       User? @relation(fields: [userId], references: [id])
+model Role {
+    id Int @id @default(autoincrement())
+    name String @unique
+    users User[]
+    permissions RolePermission[]
+    @@map("roles")
+}
+model Permission {
+    id Int @id @default(autoincrement())
+    name String @unique
+    roles RolePermission[]
+    @@map("permissions")
+}
+model RolePermission {
+    roleId Int @map("role_id")
+    permissionId Int @map("permission_id")
+    role Role @relation(fields:[roleId],references:[id],onDelete:Cascade)
+    permission Permission @relation(fields:[permissionId],references:[id],onDelete:Cascade)
+    @@id([roleId,permissionId])
+    @@map("role_permissions")
+}
+model Provider {
+    id Int @id @default(autoincrement())
+    userId Int @unique @map("user_id")
+    specialization String
+    experienceYears Int @default(0) @map("experience_years")
+    phone String?
+    phoneIv String? @map("phone_iv")
+    phoneAuthTag String? @map("phone_auth_tag")
+    user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+    appointments Appointment[]
+    @@map("providers")
+}
+model Patient {
+    id Int @id @default(autoincrement())
+    userId Int @unique @map("user_id")
+    dateOfBirth DateTime? @map("date_of_birth") @db.Date
+    gender String?
+    phone String?
+    phoneIv String? @map("phone_iv")
+    phoneAuthTag String? @map("phone_auth_tag")
+    address String?
+    user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+    appointments Appointment[] @relation("PatientAppointments")
+    @@map("patients")
+}
+model Appointment {
+    id Int @id @default(autoincrement())
+    providerId Int @map("provider_id")
+    patientId Int @map("patient_id")
+    appointmentDate DateTime @map("appointment_date") @db.Date
+    startTime String @map("start_time")
+    endTime String @map("end_time")
+    status String @default("scheduled")
+    reason String?
+    createdAt DateTime @default(now()) @map("created_at")
+    provider Provider @relation(fields:[providerId],references:[id])
+    patient Patient @relation("PatientAppointments", fields: [patientId], references: [id])
+    @@index([providerId,appointmentDate])
+    @@index([patientId,appointmentDate])
+    @@map("appointments")
 }

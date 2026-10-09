@@ -1,205 +1,94 @@
-// ==================================================
-// Load Environment Variables
-// ==================================================
-
-import "dotenv/config";
-
-// ==================================================
-// Imports
-// ==================================================
-
 import express from "express";
 import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
+import "dotenv/config";
 
-// ==================================================
-// Routes
-// ==================================================
-
-import tenantRoutes from "./routes/tenantRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import tenantRoutes from "./routes/tenantRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-import employeeRoutes from "./routes/employeeRoutes.js";
-import roleRoutes from "./routes/roleRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
-
-// ==================================================
-// Express Application
-// ==================================================
+import roleRoutes from "./routes/roleRoutes.js";
 
 const app = express();
+const server = http.createServer(app);
 
-// Render provides PORT automatically.
-// Local development will use port 5000.
-const PORT = process.env.PORT || 5000;
 
-// ==================================================
-// Allowed Origins
-// ==================================================
-//
-// ALLOWED_ORIGINS can contain multiple origins.
-//
-// Example:
-//
-// ALLOWED_ORIGINS=http://localhost:5173,https://my-frontend.onrender.com
-//
-// Local tenant domains such as:
-// http://bb.local:5173
-// http://pqr.local:5173
-// are also allowed.
-//
+// =====================================================
+// CORS CONFIGURATION
+// =====================================================
 
-const allowedOrigins = (
-    process.env.ALLOWED_ORIGINS || ""
-)
+const allowed = (process.env.ALLOWED_ORIGINS || "")
     .split(",")
-    .map((origin) => origin.trim())
+    .map((x) => x.trim())
     .filter(Boolean);
 
-// ==================================================
-// CORS Origin Validation
-// ==================================================
 
-// ==================================================
-// CORS Origin Validation
-// ==================================================
-
+// Check whether frontend origin is allowed
 const isAllowedOrigin = (origin) => {
 
-    // Allow requests without an Origin header.
-    //
-    // Example:
-    // Postman
-    // Server-to-server requests
+    // Allow requests without Origin
+    // Example: Postman / server-to-server
     if (!origin) {
         return true;
     }
 
-    // --------------------------------------------------
-    // 1. Allow origins configured in Render environment
-    // --------------------------------------------------
-
-    if (allowedOrigins.includes(origin)) {
+    // Exact origins
+    if (allowed.includes(origin)) {
         return true;
     }
 
-    // --------------------------------------------------
-    // 2. Allow localhost
-    // --------------------------------------------------
+    // Local development tenant hostnames
+    //
+    // http://gandhi:5173
+    // http://bb:5173
+    // http://abc:5173
+    //
+    const localTenantOrigin =
+        /^http:\/\/[a-z0-9-]+:5173$/i.test(origin);
 
-    if (origin === "http://localhost:5173") {
+    if (localTenantOrigin) {
         return true;
     }
 
-    if (origin === "http://127.0.0.1:5173") {
+    // Production tenant subdomains
+    //
+    // https://gandhi.mytenantdemo.site
+    // https://bb.mytenantdemo.site
+    //
+    const productionTenantOrigin =
+        /^https:\/\/[a-z0-9-]+\.mytenantdemo\.site$/i.test(origin);
+
+    if (productionTenantOrigin) {
         return true;
     }
-
-    // --------------------------------------------------
-    // 3. Allow local tenant domains
-    // --------------------------------------------------
-    //
-    // Examples:
-    //
-    // http://bb.local:5173
-    // http://pqr.local:5173
-    // http://xyz.local:5173
-    //
-
-    try {
-
-        const url = new URL(origin);
-
-        if (
-            url.protocol === "http:" &&
-            url.hostname.endsWith(".local") &&
-            url.port === "5173"
-        ) {
-            return true;
-        }
-
-    } catch (error) {
-
-        return false;
-    }
-
-    // --------------------------------------------------
-    // 4. Allow production root domain
-    // --------------------------------------------------
-    //
-    // https://mytenantdemo.site
-    // https://www.mytenantdemo.site
-    //
-
-    if (
-        origin === "https://mytenantdemo.site" ||
-        origin === "https://www.mytenantdemo.site"
-    ) {
-        return true;
-    }
-
-    // --------------------------------------------------
-    // 5. Allow production tenant subdomains
-    // --------------------------------------------------
-    //
-    // Examples:
-    //
-    // https://abc.mytenantdemo.site
-    // https://pqr.mytenantdemo.site
-    // https://xyz.mytenantdemo.site
-    //
-    // This allows ONLY one subdomain level.
-    //
-
-    try {
-
-        const url = new URL(origin);
-
-        const isProductionTenantDomain =
-            url.protocol === "https:" &&
-            /^[a-z0-9-]+\.mytenantdemo\.site$/i.test(
-                url.hostname
-            );
-
-        if (isProductionTenantDomain) {
-            return true;
-        }
-
-    } catch (error) {
-
-        return false;
-    }
-
-    // --------------------------------------------------
-    // Origin not allowed
-    // --------------------------------------------------
 
     return false;
 };
 
-// ==================================================
-// Express CORS
-// ==================================================
+
+// =====================================================
+// EXPRESS CORS
+// =====================================================
 
 app.use(
     cors({
         origin: (origin, callback) => {
 
+            console.log("Request Origin:", origin);
+
             if (isAllowedOrigin(origin)) {
-                callback(null, true);
-                return;
+                return callback(null, true);
             }
 
-            console.log(
-                "CORS blocked origin:",
-                origin
-            );
+            console.log("CORS BLOCKED:", origin);
 
-            callback(
-                new Error("Not allowed by CORS")
+            return callback(
+                new Error(`Not allowed by CORS: ${origin}`)
             );
         },
+
+        credentials: true,
 
         methods: [
             "GET",
@@ -214,177 +103,118 @@ app.use(
             "Content-Type",
             "Authorization",
             "x-tenant-id"
-        ],
-
-        credentials: true
+        ]
     })
 );
 
-// ==================================================
-// JSON Middleware
-// ==================================================
 
-app.use(
-    express.json()
-);
+// =====================================================
+// JSON
+// =====================================================
 
-// ==================================================
-// HTTP Server
-// ==================================================
-//
-// Socket.IO must use this HTTP server.
-//
-// Do NOT use app.listen().
-//
+app.use(express.json());
 
-const server = http.createServer(app);
 
-// ==================================================
-// Socket.IO
-// ==================================================
+// =====================================================
+// SOCKET.IO
+// =====================================================
 
-const io = new Server(
-    server,
-    {
-        cors: {
-            origin: (origin, callback) => {
+const io = new Server(server, {
 
-                if (isAllowedOrigin(origin)) {
-                    callback(null, true);
-                    return;
-                }
+    cors: {
+        origin: (origin, callback) => {
 
-                console.log(
-                    "Socket.IO CORS blocked:",
-                    origin
-                );
+            console.log("Socket Origin:", origin);
 
-                callback(
-                    new Error(
-                        "Not allowed by Socket.IO CORS"
-                    )
-                );
-            },
+            if (isAllowedOrigin(origin)) {
+                return callback(null, true);
+            }
 
-            methods: [
-                "GET",
-                "POST"
-            ],
+            console.log(
+                "Socket CORS BLOCKED:",
+                origin
+            );
 
-            allowedHeaders: [
-                "Content-Type",
-                "Authorization",
-                "x-tenant-id"
-            ],
+            return callback(
+                new Error(
+                    `Not allowed by Socket.IO CORS: ${origin}`
+                )
+            );
+        },
 
-            credentials: true
-        }
+        methods: [
+            "GET",
+            "POST"
+        ],
+
+        credentials: true
     }
-);
+});
 
-// ==================================================
-// Make Socket.IO Available in Controllers
-// ==================================================
-//
-// Controllers can access Socket.IO using:
-//
-// const io = req.app.get("io");
-//
 
-app.set(
-    "io",
-    io
-);
+// Make Socket.IO available to controllers
+app.set("io", io);
 
-// ==================================================
-// Socket.IO Connection
-// ==================================================
 
-io.on(
-    "connection",
-    (socket) => {
+// =====================================================
+// SOCKET CONNECTION
+// =====================================================
+
+io.on("connection", (socket) => {
+
+    console.log(
+        "Socket connected:",
+        socket.id
+    );
+
+
+    // Provider appointment room
+    socket.on(
+        "join_provider_room",
+        ({ tenantId, providerId }) => {
+
+            if (!tenantId || !providerId) {
+                return;
+            }
+
+            const room =
+                `tenant_${tenantId}_provider_${providerId}`;
+
+            socket.join(room);
+
+            console.log(
+                `Socket ${socket.id} joined ${room}`
+            );
+        }
+    );
+
+
+    // Disconnect
+    socket.on("disconnect", () => {
 
         console.log(
-            "Socket connected:",
+            "Socket disconnected:",
             socket.id
         );
+    });
+});
 
-        // ------------------------------------------
-        // Join Provider Room
-        // ------------------------------------------
-        //
-        // Example room:
-        //
-        // tenant_bb_provider_2
-        //
-        // Only this provider receives appointment
-        // notifications.
-        //
 
-        socket.on(
-            "join_provider_room",
-            ({
-                tenantId,
-                providerId
-            }) => {
+// =====================================================
+// ROOT API
+// =====================================================
 
-                if (
-                    !tenantId ||
-                    !providerId
-                ) {
-                    console.log(
-                        "Invalid provider room data"
-                    );
+app.get("/", (req, res) => {
 
-                    return;
-                }
+    res.json({
+        message: "Multi-Tenant API is running"
+    });
+});
 
-                const room =
-                    `tenant_${tenantId}_provider_${providerId}`;
 
-                socket.join(room);
-
-                console.log(
-                    `Socket ${socket.id} joined ${room}`
-                );
-            }
-        );
-
-        // ------------------------------------------
-        // Socket Disconnect
-        // ------------------------------------------
-
-        socket.on(
-            "disconnect",
-            () => {
-
-                console.log(
-                    "Socket disconnected:",
-                    socket.id
-                );
-            }
-        );
-    }
-);
-
-// ==================================================
-// Root API
-// ==================================================
-
-app.get(
-    "/",
-    (req, res) => {
-
-        res.json({
-            message:
-                "Multi-Tenant API is running"
-        });
-    }
-);
-
-// ==================================================
-// API Routes
-// ==================================================
+// =====================================================
+// API ROUTES
+// =====================================================
 
 app.use(
     "/api/tenants",
@@ -402,8 +232,8 @@ app.use(
 );
 
 app.use(
-    "/api/employees",
-    employeeRoutes
+    "/api/appointments",
+    appointmentRoutes
 );
 
 app.use(
@@ -411,39 +241,48 @@ app.use(
     roleRoutes
 );
 
-app.use(
-    "/api/appointments",
-    appointmentRoutes
-);
 
-// ==================================================
-// Start Server
-// ==================================================
-//
-// Render requires the server to listen on:
-//     0.0.0.0
-//
-// PORT comes from:
-//     process.env.PORT
-//
-// Local:
-//     http://localhost:5000
-//
-// Production:
-//     Render provides the public URL.
-//
+// =====================================================
+// ERROR HANDLER
+// =====================================================
 
-server.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
+app.use((error, req, res, next) => {
 
-        console.log(
-            `Server running on port ${PORT}`
-        );
+    console.error(
+        "Server Error:",
+        error
+    );
 
-        console.log(
-            "Socket.IO server started"
-        );
+    if (
+        error.message &&
+        error.message.includes("CORS")
+    ) {
+        return res.status(403).json({
+            message: error.message
+        });
     }
-);
+
+    return res.status(
+        error.statusCode || 500
+    ).json({
+        message:
+            error.message ||
+            "Internal server error"
+    });
+});
+
+
+// =====================================================
+// SERVER
+// =====================================================
+
+const PORT =
+    process.env.PORT || 5000;
+
+server.listen(PORT, () => {
+
+    console.log(
+        `Server running on http://localhost:${PORT}`
+    );
+
+});

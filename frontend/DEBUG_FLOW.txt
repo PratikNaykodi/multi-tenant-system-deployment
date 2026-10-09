@@ -1,0 +1,86 @@
+MULTI-TENANT FRONTEND DEBUG FLOW (v7)
+====================================
+
+1. USER ROLE-SWITCH FORM RESET
+------------------------------
+UsersPage.jsx -> handleRoleChange()
+  -> role_id and role_name are updated
+  -> provider object is cleared
+  -> patient object is cleared
+  -> old flat profile keys are cleared
+  -> role-specific field section remounts using a keyed React Fragment
+  -> validation/server errors are cleared
+
+If a value still appears after switching roles, verify the correct updated ZIP is running and restart Vite. Hard refresh the browser (Ctrl+Shift+R).
+
+2. APPOINTMENT CREATE/EDIT REQUIRED-FIELD ERROR
+-----------------------------------------------
+AppointmentsPage.jsx -> GET /api/appointments/options
+Expected backend response based on this project's service:
+{
+  "providers": [{ "provider_id": 3, "user_id": 8, "name": "Kartik Desai" }],
+  "patients": [{ "patient_id": 4, "user_id": 9, "name": "Anup Desai" }]
+}
+
+IMPORTANT: The backend returns provider_id and patient_id, not necessarily id. The frontend normalizes these into dropdown option `id` values before rendering.
+
+Before POST/PUT, DevTools -> Network -> /api/appointments -> Payload should include:
+{
+  "provider_id": 3,
+  "patient_id": 4,
+  "appointment_date": "2026-10-15",
+  "start_time": "10:00",
+  "end_time": "10:30",
+  "status": "scheduled",
+  "reason": "Consultation"
+}
+
+If IDs are still empty:
+- Open GET /api/appointments/options and check providers/patients arrays.
+- Confirm option rows contain provider_id/patient_id and each provider/patient has a related user name.
+- Confirm the signed-in provider has a provider profile and the signed-in patient has a patient profile.
+- Confirm the frontend is pointed at the correct tenant API/database.
+
+3. ROLE-BASED APPOINTMENT OWNERSHIP
+-----------------------------------
+Admin/Manager: choose provider and patient from dropdowns.
+Provider: own provider profile ID is selected and provider dropdown is disabled; backend list endpoint must scope records to that provider.
+Patient: own patient profile ID is selected and patient dropdown is disabled; backend list endpoint must scope records to that patient. Patient UI has no Delete action.
+
+Frontend filtering is a usability layer only. Backend middleware/service must enforce authorization and ownership; never rely on frontend filtering for security.
+
+4. SOCKET.IO APPOINTMENT UPDATES
+--------------------------------
+Frontend joins `tenant_<tenant identifier>_provider_<provider profile id>` rooms by emitting:
+`join_provider_room` with `{ tenantId, providerId }`.
+It listens for `appointment_created`, `appointment_updated`, and `appointment_deleted` and reloads the current listing.
+
+The backend currently emits `appointment_created`. To refresh after update/delete as well, copy:
+backend-patch/controllers/Appointment/appointmentController.js
+into the backend at:
+controllers/Appointment/appointmentController.js
+
+Back up the original first, then restart the backend. The patch uses the existing appointment service method names and the existing Socket.IO room convention.
+
+5. COMMON ERRORS
+----------------
+400: inspect request payload; all required IDs/date/times must be non-empty.
+401: token expired/missing; log in again.
+403: current role lacks permission or ownership check failed.
+404: provider/patient/appointment does not exist in this tenant database.
+409: provider already has an overlapping appointment.
+CORS/Network: check VITE_API_BASE_URL, VITE_SOCKET_URL, backend CORS allowed origins and x-tenant-id.
+Socket does not refresh: check backend is using the patched controller, browser Network -> WS/Socket.IO, and tenant identifier matches `req.tenant.identifier`.
+
+
+ROLE / SELF-UPDATE CHECKS
+1. Switch Provider -> Patient -> Provider while the User modal is open. All profile inputs should be blank after each role change.
+2. Admin may select all roles; Manager sees only Manager, Provider, Patient.
+3. Open the logged-in user's row: edit is allowed, role is disabled. Delete is hidden and the backend rejects self-delete.
+4. Manager should only see Edit/Delete for Provider/Patient rows plus Edit for their own row. Backend middleware/controller must also be patched; hiding a button alone is not authorization.
+
+APPOINTMENT CHECKS
+1. Provider list is server-scoped to the signed-in provider. Provider selector is preselected and disabled.
+2. Patient list is server-scoped to the signed-in patient. Patient selector is preselected and disabled; Delete is hidden. Backend patch rejects creating appointments for another patient.
+3. Admin/Manager select the target provider and patient. On create/update/delete, the backend emits a Socket.IO event to the affected provider room(s).
+4. If another client does not refresh, verify socket connection, tenant identifier, room name, and that the patched appointment controller is installed.

@@ -1,0 +1,86 @@
+SETUP STEPS - NODE/EXPRESS + PRISMA 7 + MVC/SERVICE/REPOSITORY
+===============================================================
+
+1. Open backend directory.
+2. Run: npm install
+3. Copy .env.example to .env.
+4. Put your local PostgreSQL credentials in .env.
+5. Create central DB: multitenant_central.
+6. Generate Prisma clients:
+   npm run prisma:generate
+7. Create/apply the central Tenant migration using your DATABASE_URL.
+   Recommended first setup:
+   npx prisma migrate dev --schema=prisma/central/schema.prisma --name init
+8. Validate tenant schema:
+   npx prisma validate --schema=prisma/tenant/schema.prisma
+9. Start backend:
+   npm run dev
+10. Test:
+    GET http://localhost:5000/
+
+Expected:
+{"message":"Multi-Tenant API is running"}
+
+IMPORTANT PRISMA 7 NOTE
+========================
+This project has TWO Prisma schemas:
+
+prisma/central/schema.prisma
+  -> only Tenant model
+  -> central database
+
+prisma/tenant/schema.prisma
+  -> users, roles, permissions, role_permissions, providers,
+     patients, appointments
+  -> each tenant database
+
+Generate both clients with:
+npm run prisma:generate
+
+TENANT PROVISIONING
+===================
+POST /api/tenants creates the tenant database and provisions its tables.
+Prisma is used for tenant CRUD and seed operations. PostgreSQL's pg client
+is used only for CREATE DATABASE because database creation itself is an
+administrative PostgreSQL operation, not a normal Prisma model operation.
+
+EXISTING FRONTEND URLS
+======================
+Local base URL:
+http://localhost:5000/api
+
+Production base URL:
+https://multi-tenant-backend-z8g5.onrender.com/api
+
+Do not change frontend endpoint names.
+Tenant header:
+x-tenant-id
+
+Authentication header:
+Authorization: Bearer <token>
+
+ENDPOINTS
+=========
+POST   /api/tenants
+POST   /api/auth/register
+POST   /api/auth/login
+GET    /api/users
+GET    /api/users/:id
+POST   /api/users
+PUT    /api/users/:id
+DELETE /api/users/:id
+GET    /api/roles
+GET    /api/roles/:id
+GET    /api/appointments/options
+GET    /api/appointments?page=1&limit=10
+GET    /api/appointments/:id
+POST   /api/appointments
+PUT    /api/appointments/:id
+DELETE /api/appointments/:id
+GET    /api/employees
+GET    /api/employees/:id
+POST   /api/employees
+PUT    /api/employees/:id
+DELETE /api/employees/:id
+
+

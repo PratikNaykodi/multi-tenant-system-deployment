@@ -1,0 +1,105 @@
+MULTI-TENANT FRONTEND - SETUP STEPS
+===================================
+
+1. REQUIREMENTS
+---------------
+Node.js 20.19+ or a current supported Node.js version.
+Backend should be running on http://localhost:5000.
+
+2. INSTALL
+----------
+cd multi-tenant-frontend
+npm install
+npm run dev
+
+3. ENVIRONMENT
+--------------
+Create .env:
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_SOCKET_URL=http://localhost:5000
+
+4. CENTRAL APPLICATION
+----------------------
+Open:
+http://localhost:5173
+
+It redirects to:
+http://localhost:5173/tenant/create
+
+Any path on the central hostname also redirects to tenant creation.
+
+5. LOCAL TENANT
+---------------
+Windows hosts file:
+C:\Windows\System32\drivers\etc\hosts
+
+Add:
+127.0.0.1 pratik
+
+Open:
+http://pratik:5173/login
+
+Login uses:
+POST /api/auth/login
+Header: x-tenant-id: pratik
+
+6. TENANT ROUTING
+-----------------
+http://pratik:5173/tenant/create
+  -> /login if not logged in
+  -> /dashboard if already logged in
+
+http://pratik:5173/
+  -> /login if not logged in
+  -> /dashboard if logged in
+
+7. PRODUCTION
+-------------
+Central:
+https://mytenantdemo.site -> /tenant/create
+
+Tenant:
+https://pratik.mytenantdemo.site/login
+
+Set production env:
+VITE_API_BASE_URL=https://multi-tenant-backend-z8g5.onrender.com/api
+VITE_SOCKET_URL=https://multi-tenant-backend-z8g5.onrender.com
+
+8. MODULES
+----------
+Dashboard
+Users
+Appointments
+Employees
+Roles
+Profile
+
+9. BOOTSTRAP
+------------
+Bootstrap CSS is imported in src/main.jsx.
+React-Bootstrap is installed for compatibility, but the main UI uses React-safe components and custom Bootstrap-compatible styling.
+
+10. BUILD
+---------
+npm run build
+npm run preview
+
+=== NEW UI DEPENDENCY ===
+This version uses SweetAlert2 for:
+- success/error toast messages
+- delete confirmation dialogs
+
+It is installed with:
+
+npm install
+
+The package is listed in package.json as sweetalert2.
+
+
+USER PROVIDER/PATIENT FIX (v4)
+==============================
+The current backend UserService reads provider/patient fields at the root of the JSON body. The frontend now sends specialization, experience_years, provider_phone, date_of_birth, gender, patient_phone, and address at the root alongside role_id. Do not send these only inside nested provider/patient objects unless your backend service is changed to read nested objects.
+
+If you also want the backend to return HTTP 409 for duplicate emails and validate specialization before creating a user, copy the files from backend-patch/ into the matching backend folders. This avoids leaving a user record behind when provider validation fails.
+
+If you previously submitted a provider with the same email and received the specialization error, that request may have created the user before failing. Use a different email for a quick test, or remove/fix the incomplete user record before retrying the same email. Never delete a production record without checking it first.

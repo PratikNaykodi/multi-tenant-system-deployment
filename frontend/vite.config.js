@@ -13,9 +13,10 @@ export default defineConfig({
             "xyz.local",
             "abc.local",
             "bb.local",
-            "pratik.local",
+            "pratik",
             "saurabh",
-            "priyanka"
+            "gandhi",
+            "jadu"
         ]
     }
 });

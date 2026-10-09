@@ -1,13 +1,6 @@
-import api from "../../../services/api";
+import api from "../../../services/api.js";
 
-export const login = async (email, password) => {
-    const response = await api.post(
-        "/auth/login",
-        {
-            email,
-            password
-        }
-    );
-    
-    return response.data;
+export const authApi = {
+    login: (email, password) => api.post("/auth/login", { email, password }),
+    me: () => api.get("/auth/me"),
 };

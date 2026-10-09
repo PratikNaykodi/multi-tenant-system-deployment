@@ -1,10 +1,11 @@
 import express from "express";
-import { registerUser, loginUser } from "../controllers/authController.js";
+import * as c from "../controllers/Auth/authController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import { tenantMiddleware } from "../middleware/tenantMiddleware.js";
 
-const router = express.Router();
-
-router.post("/register", tenantMiddleware, registerUser);
-router.post("/login", tenantMiddleware, loginUser);
-
-export default router;
+const r = express.Router();
+r.post("/register", tenantMiddleware, c.register);
+r.post("/login", tenantMiddleware, c.login);
+// Restore the authenticated user after a hard browser refresh.
+r.get("/me", authMiddleware, tenantMiddleware, c.me);
+export default r;

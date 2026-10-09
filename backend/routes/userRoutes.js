@@ -1,81 +1,44 @@
 import express from "express";
-
-import {
-    getCurrentUser,
-    createUser,
-    getUsers,
-    getUser,
-    updateUser,
-    deleteUser
-} from "../controllers/userController.js";
-
+import * as c from "../controllers/User/userController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { tenantMiddleware } from "../middleware/tenantMiddleware.js";
 import { requirePermission } from "../middleware/permissionMiddleware.js";
+import { requireUserUpdatePermission } from "../middleware/userUpdatePermission.js";
 
-const router = express.Router();
-
-// --------------------------------------------------
-// Current Logged-in User
-// --------------------------------------------------
-router.get(
-    "/me",
-    authMiddleware,
-    getCurrentUser
-);
-
-// --------------------------------------------------
-// Create User
-// Permission: user.create
-// --------------------------------------------------
-router.post(
+const r = express.Router();
+r.get(
     "/",
     authMiddleware,
-    requirePermission("create", "user"),
-    createUser
+    tenantMiddleware,
+    requirePermission("user.read"),
+    c.list,
 );
-
-// --------------------------------------------------
-// Get All Users
-// Permission: user.read
-// --------------------------------------------------
-router.get(
+r.get(
+    "/:id",
+    authMiddleware,
+    tenantMiddleware,
+    requirePermission("user.read"),
+    c.show,
+);
+r.post(
     "/",
     authMiddleware,
-    requirePermission("read", "user"),
-    getUsers
+    tenantMiddleware,
+    requirePermission("user.create"),
+    c.create,
 );
-
-// --------------------------------------------------
-// Get User By ID
-// Permission: user.read
-// --------------------------------------------------
-router.get(
+r.put(
     "/:id",
     authMiddleware,
-    requirePermission("read", "user"),
-    getUser
+    tenantMiddleware,
+    requireUserUpdatePermission,
+    c.update,
 );
-
-// --------------------------------------------------
-// Update User
-// Permission: user.update
-// --------------------------------------------------
-router.put(
+r.delete(
     "/:id",
     authMiddleware,
-    requirePermission("update", "user"),
-    updateUser
+    tenantMiddleware,
+    requirePermission("user.delete"),
+    c.destroy,
 );
-
-// --------------------------------------------------
-// Delete User
-// Permission: user.delete
-// --------------------------------------------------
-router.delete(
-    "/:id",
-    authMiddleware,
-    requirePermission("delete", "user"),
-    deleteUser
-);
-
-export default router;
+export default r;

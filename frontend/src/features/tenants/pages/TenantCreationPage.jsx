@@ -1,415 +1,83 @@
-import { useState } from "react";
-import { createTenant } from "../services/tenantService";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import { useMemo, useState } from "react";
+import { tenantApi } from "../../../services/tenantService.js";
+import InfoIcon from "../../../components/InfoIcon.jsx";
+import { getApiError } from "../../../utils/errors.js";
+import { getTenantLoginUrl } from "../../../utils/tenant.js";
 
-function TenantCreationPage() {
-    // ==================================================
-    // Form Data
-    // ==================================================
-    const [formData, setFormData] = useState({
-        name: "",
-        domain: ""
-    });
-
-    // ==================================================
-    // Loading State
-    // ==================================================
-    const [loading, setLoading] = useState(false);
-
-    // ==================================================
-    // Error State
-    // ==================================================
+export default function TenantCreationPage() {
+    const [name, setName] = useState("");
+    const [identifier, setIdentifier] = useState("");
+    const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
-
-    // ==================================================
-    // Tenant Creation Result
-    // ==================================================
     const [result, setResult] = useState(null);
-
-    // ==================================================
-    // Handle Input Change
-    // ==================================================
-    const handleChange = (event) => {
-        const {
-            name,
-            value
-        } = event.target;
-
-        setFormData(
-            (previous) => ({
-                ...previous,
-                [name]: value
-            })
-        );
-    };
-
-    // ==================================================
-    // Generate Production Tenant URL
-    // ==================================================
-
-    const getTenantApplicationUrl = (tenant) => {
-        // ------------------------------------------
-        // Prefer identifier returned by backend
-        // ------------------------------------------
-        let identifier = tenant?.identifier;
-
-        // ------------------------------------------
-        // Fallback
-        // ------------------------------------------
-        //
-        // If identifier is not available,
-        // convert:
-        //
-        // bb.local
-        //
-        // to:
-        //
-        // bb
-        //
-
-        if (!identifier && tenant?.domain) {
-
-            identifier =
-                tenant.domain
-                    .replace(".local", "")
-                    .replace(
-                        ".mytenantdemo.site",
-                        ""
-                    )
-                    .trim()
-                    .toLowerCase();
-        }
-
-        // ------------------------------------------
-        // Production URL
-        // ------------------------------------------
-
-        return `https://${identifier}.mytenantdemo.site`;
-    };
-
-    // ==================================================
-    // Handle Submit
-    // ==================================================
-
-    const handleSubmit = async (event) => {
-
-        event.preventDefault();
-
-        setError("");
-
-        setResult(null);
-
-        // ------------------------------------------
-        // Validation
-        // ------------------------------------------
-
-        if (
-            !formData.name.trim() ||
-            !formData.domain.trim()
-        ) {
-
-            setError(
-                "Clinic name and domain are required."
-            );
-
-            return;
-        }
-
+    
+    const preview = useMemo(() => identifier.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-"), [identifier]);
+    
+    async function submit(e) {
+        e.preventDefault(); setError(""); setResult(null); setBusy(true);
         try {
-
-            setLoading(true);
-
-            // ------------------------------------------
-            // Create Tenant
-            // ------------------------------------------
-
-            const data =
-                await createTenant({
-
-                    name:
-                        formData.name.trim(),
-
-                    domain:
-                        formData.domain
-                            .trim()
-                            .toLowerCase()
-
-                });
-
-            // ------------------------------------------
-            // Store Result
-            // ------------------------------------------
-
-            setResult(data);
-
-            // ------------------------------------------
-            // Reset Form
-            // ------------------------------------------
-
-            setFormData({
-                name: "",
-                domain: ""
-            });
-
-        } catch (error) {
-
-            console.error(
-                "Create tenant error:",
-                error
-            );
-
-            setError(
-                error.response?.data?.message ||
-                "Unable to create tenant."
-            );
-
-        } finally {
-
-            setLoading(false);
-        }
-    };
-
-    // ==================================================
-    // Tenant Application URL
-    // ==================================================
-    const tenantApplicationUrl =
-        result?.tenant
-            ? getTenantApplicationUrl(
-                result.tenant
-            )
-            : "";
-    // ==================================================
-    // Render
-    // ==================================================
-
-    return (
-        <div className="central-page">
-            <div className="central-card">
-                {/* ======================================
-                    Header
-                ====================================== */}
-                <div className="central-header">
-                    <h1>
-                        Create Tenant
-                    </h1>
-                    <p>
-                        Create a new tenant application
-                    </p>
-                </div>
-
-                {/* ======================================
-                    Create Tenant Form
-                ====================================== */}
-
-                {!result && (
-                    <form
-                        onSubmit={handleSubmit}
-                        className="central-form"
-                    >
-                        {/* ----------------------------------
-                            Error
-                        ---------------------------------- */}
-                        {error && (
-
-                            <div className="page-error">
-
-                                {error}
-
-                            </div>
-
-                        )}
-                        {/* ----------------------------------
-                            Clinic Name
-                        ---------------------------------- */}
-                        <div className="form-group">
-
-                            <label>
-                                Clinic Name
-                            </label>
-
-                            <input
-                                type="text"
-                                name="name"
-                                value={
-                                    formData.name
-                                }
-                                onChange={
-                                    handleChange
-                                }
-                                placeholder="Enter clinic name"
-                                disabled={loading}
-                            />
+            const domain = `${preview}.mytenantdemo.site`;
+            const response = await tenantApi.create({ name: name.trim(), domain, identifier: preview });
+            setResult(response.data?.tenant ? response.data : response.data);
+        } catch (e) { setError(getApiError(e)); }
+        finally { setBusy(false); }
+    }
+    
+    if (result) return <TenantSuccess result={result} />;
+    
+    return  <div className="central-page">
+                <div className="tenant-create-card">
+                    <h1>Create Tenant</h1>
+                    <p>Create a new tenant application</p>
+                    {error && <div className="alert alert-danger">{error}</div>}
+                    <form onSubmit={submit}>
+                        <label>Clinic Name</label>
+                        <input className="form-control big-input" value={name} onChange={e=>setName(e.target.value)} placeholder="Enter clinic name" required />
+                        <label className="mt-4">Domain <InfoIcon title="Use lowercase letters, numbers and hyphens. This becomes the tenant subdomain." /></label>
+                        <div className="domain-input">
+                            <input className="form-control big-input" value={identifier} onChange={e=>setIdentifier(e.target.value.toLowerCase())} placeholder="Enter domain name" required pattern="[a-z0-9-]+" /><span>.mytenantdemo.site</span>
                         </div>
-                        {/* ----------------------------------
-                            Domain
-                        ---------------------------------- */}
-
-                        <div className="form-group">
-
-                            <div className="domain-label-row">
-
-                                <label htmlFor="domain">
-                                    Domain
-                                </label>
-
-                                <span className="domain-help">
-                                    <FontAwesomeIcon icon={faCircleInfo} />
-                                    <span className="domain-tooltip">
-                                        Enter only your domain name, for example
-                                        <strong> bb</strong>.
-                                        Your application URL will be
-                                        <strong> https://bb.mytenantdemo.site</strong>.
-                                    </span>
-
-                                </span>
-
-                            </div>
-
-                            <div className="domain-input-wrapper">
-
-                                <input
-                                    id="domain"
-                                    type="text"
-                                    name="domain"
-                                    value={formData.domain}
-                                    onChange={handleChange}
-                                    placeholder="Enter domain name"
-                                    disabled={loading}
-                                />
-
-                                <span className="domain-suffix">
-                                    .mytenantdemo.site
-                                </span>
-
-                            </div>
-
-                        </div>
-                        {/* ----------------------------------
-                            Submit
-                        ---------------------------------- */}
-                        <button
-                            type="submit"
-                            className="primary-button"
-                            disabled={loading}
-                        >
-                            {loading
-                                ? "Creating Tenant..."
-                                : "Create Tenant"
-                            }
-
-                        </button>
+                        {preview && <div className="domain-preview">Tenant URL: <strong>https://{preview}.mytenantdemo.site/login</strong></div>}
+                        <button className="primary-btn w-100 mt-4" disabled={busy}>{busy ? "Creating Tenant..." : "Create Tenant"}</button>
                     </form>
-                )}
-
-                {/* ======================================
-                    Success
-                ====================================== */}
-
-                {result && (
-                    <div className="tenant-success">
-                        <h2>
-                            Tenant Created Successfully
-                        </h2>
-                        {/* ----------------------------------
-                            Tenant Details
-                        ---------------------------------- */}
-                        <div className="tenant-details">
-                            <p>
-                                <strong>
-                                    Company:
-                                </strong>
-
-                                {" "}
-                                {result.tenant.name}
-                            </p>
-
-                            <p>
-                                <strong>
-                                    Identifier:
-                                </strong>
-                                {" "}
-                                {result.tenant.identifier}
-                            </p>
-
-                            <p>
-
-                                <strong>
-                                    Domain:
-                                </strong>
-                                {" "}
-                                {result.tenant.domain}
-                            </p>
-
-                            <p>
-                                <strong>
-                                    Database:
-                                </strong>
-                                {" "}
-
-                                {result.tenant.databaseName}
-                            </p>
-                        </div>
-                        {/* ----------------------------------
-                            Admin Login
-                        ---------------------------------- */}
-
-                        <div className="admin-details">
-                            <h3>
-                                Admin Login
-                            </h3>
-
-                            <p>
-                                <strong>
-                                    Username:
-                                </strong>
-                                {" "}
-                                {result.admin.username}
-                            </p>
-                            <p>
-                                <strong> Password:</strong>
-                                {" "}
-                                {result.admin.password}
-                            </p>
-                        </div>
-
-                        {/* ----------------------------------
-                            Tenant Application
-                        ---------------------------------- */}
-
-                        <div className="tenant-login">
-                            <p>
-                                <strong>
-                                    Tenant Application:
-                                </strong>
-                            </p>
-                            <a
-                                href={
-                                    tenantApplicationUrl
-                                }
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >{tenantApplicationUrl}
-                            </a>
-                        </div>
-
-                        {/* ----------------------------------
-                            Create Another Tenant
-                        ---------------------------------- */}
-                        <button
-                            type="button"
-                            className="primary-button"
-                            onClick={() => {
-                                setResult(null);
-                                setError("");
-                            }}
-                        >Create Another Tenant
-                        </button>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
+                </div>
+            </div>;
 }
 
-export default TenantCreationPage;
+function TenantSuccess({ result }) {
+    const tenant = result?.tenant || {};
+    const admin = result?.admin || {};
+    const identifier = tenant.identifier || tenant.domain?.split(".")[0] || "tenant";
+    const loginUrl = tenant.domain?.includes(".") ? `https://${tenant.domain}/login` : getTenantLoginUrl(identifier);
+    return <div className="central-page">
+        <div className="tenant-success-card">
+            <div className="success-check">✓</div>
+            <h1>Tenant Created Successfully</h1>
+            <p>Your tenant application is ready.</p>
+            <div className="details-grid">
+                <Detail label="Clinic Name" value={tenant.name} />
+                <Detail label="Tenant ID" value={tenant.id} />
+                <Detail label="Identifier" value={tenant.identifier} />
+                <Detail label="Database" value={tenant.databaseName || tenant.database_name} />
+                <Detail label="Tenant Domain" value={tenant.domain} copy />
+                <Detail label="Login URL" value={loginUrl} copy />
+            </div>
+            <div className="demo-box">
+                <h3>Demo Login</h3>
+                <Detail label="Username" value={admin.username || admin.email} copy />
+                <Detail label="Password" value={admin.password} copy />
+            </div>
+            <div className="success-actions">
+                <a className="primary-btn" href={loginUrl}>Open Tenant Login</a>
+                <button className="secondary-btn" onClick={()=>window.location.reload()}>Create Another Tenant</button>
+            </div>
+        </div>
+    </div>;
+}
+function Detail({label,value,copy}) { 
+    const text=value ?? "-"; 
+    return <div className="detail-row">
+                <span>{label}</span>
+                <strong>{text}</strong>
+                {copy && <button type="button" className="copy-btn" onClick={()=>navigator.clipboard?.writeText(String(text))}>Copy</button>}
+            </div>; }

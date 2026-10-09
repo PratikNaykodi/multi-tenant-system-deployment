@@ -1,0 +1,100 @@
+MULTI-TENANT BACKEND DEBUG FLOW
+===============================
+
+Architecture:
+Route -> Middleware -> Controller -> Service -> Repository -> Prisma -> PostgreSQL
+
+EXAMPLE: GET /api/appointments?page=1&limit=10
+
+1. server.js
+   app.use("/api/appointments", appointmentRoutes)
+
+2. routes/appointmentRoutes.js
+   GET / -> authMiddleware -> tenantMiddleware -> requirePermission("appointment.read") -> controller.list
+
+3. middleware/authMiddleware.js
+   Reads Authorization: Bearer <token>
+   Verifies JWT and sets req.user.
+
+4. middleware/tenantMiddleware.js
+   Reads x-tenant-id.
+   Looks up Tenant in central PostgreSQL.
+   Gets databaseName such as tenant_bb.
+   Creates/gets the Prisma client for that tenant DB.
+   Sets req.tenant and req.tenantDb.
+
+5. middleware/permissionMiddleware.js
+   Checks req.user.permissions for appointment.read.
+   Missing permission => HTTP 403.
+
+6. controllers/Appointment/appointmentController.js
+   list() reads query parameters and calls the service.
+   No database query belongs here.
+
+7. services/Appointment/appointmentService.js
+   Applies pagination and provider/patient visibility rules.
+   Calls repository methods.
+
+8. repositories/Appointment/appointmentRepository.js
+   Calls Prisma:
+     db.appointment.findMany()
+     db.appointment.count()
+
+9. Prisma
+   Converts the repository operation to SQL for tenant_bb.
+
+10. PostgreSQL
+    Returns rows -> Prisma -> Repository -> Service -> Controller -> JSON.
+
+EXAMPLE: POST /api/appointments
+
+Body:
+{
+  "provider_id": 1,
+  "patient_id": 2,
+  "appointment_date": "2026-10-30",
+  "start_time": "10:00",
+  "end_time": "10:30",
+  "reason": "Regular checkup"
+}
+
+Flow:
+Route
+ -> auth
+ -> tenant
+ -> permission appointment.create
+ -> Appointment Controller.create
+ -> Appointment Service.createNew
+ -> Appointment Repository
+ -> Prisma transaction
+ -> PostgreSQL
+
+The service checks required fields, provider, patient, ownership and overlap.
+A PostgreSQL advisory transaction lock is used for provider + date so concurrent
+booking requests cannot create overlapping appointments for the same provider/date.
+
+After successful commit, the controller emits Socket.IO event:
+appointment_created
+
+Room:
+tenant_bb_provider_1
+
+DEBUG BY STATUS
+================
+401 = Authorization/JWT problem
+403 = Permission or ownership problem
+404 = Route/data/tenant not found
+400 = Validation or missing tenant header
+409 = Appointment conflict
+500 = Server/database/programming error
+
+WHERE TO PUT LOGS
+=================
+Route issue       -> route file
+JWT issue         -> authMiddleware
+Tenant issue      -> tenantMiddleware
+Permission issue  -> permissionMiddleware
+Business issue    -> service
+DB query issue    -> repository
+Prisma issue      -> generated client/schema/config
+Response issue    -> controller

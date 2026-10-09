@@ -1,0 +1,16 @@
+generator client {
+    provider = "prisma-client"
+    output   = "../../generated/central"
+}
+datasource db {
+    provider = "postgresql"
+}
+model Tenant {
+    id           Int      @id @default(autoincrement())
+    name         String
+    domain       String   @unique
+    identifier   String   @unique
+    databaseName String   @map("database_name")
+    createdAt    DateTime @default(now()) @map("created_at")
+    @@map("Tenant")
+}
