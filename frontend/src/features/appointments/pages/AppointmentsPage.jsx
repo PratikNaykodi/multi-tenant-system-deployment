@@ -348,7 +348,7 @@ export default function AppointmentsPage() {
 				</div>
 				<div>
 				<label>Date *</label>
-				<input className={`form-control ${errors.appointment_date ? "is-invalid" : ""}`} type="date" value={form.appointment_date} onChange={(e) => setValue("appointment_date", e.target.value)} />
+				<input className={`form-control ${errors.appointment_date ? "is-invalid" : ""}`} type="date" value={form.appointment_date} onChange={(e) => setValue("appointment_date", e.target.value)} min={new Date().toISOString().split("T")[0]} />
 				<FieldError>{errors.appointment_date}</FieldError>
 				</div>
 				<div>
