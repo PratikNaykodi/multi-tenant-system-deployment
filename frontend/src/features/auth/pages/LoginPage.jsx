@@ -30,7 +30,7 @@ export default function LoginPage() {
                 {error && <div className="alert alert-danger">{error}</div>}
                 <form onSubmit={submit}>
                     <label>Email</label>
-                    <input className="form-control" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="admin@example.com" required />
+                    <input className="form-control" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Enter email" required />
                     <label>Password</label>
                     <input className="form-control" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="Enter password" required />
                     <button className="primary-btn w-100 mt-3" disabled={busy}>{busy ? "Signing in..." : "Login"}</button>
