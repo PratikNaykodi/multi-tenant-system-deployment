@@ -1,21 +1,24 @@
 import express from "express";
-import * as c from "../controllers/Role/roleController.js";
+import * as controller from "../controllers/Role/roleController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { tenantMiddleware } from "../middleware/tenantMiddleware.js";
 import { requirePermission } from "../middleware/permissionMiddleware.js";
-const r = express.Router();
-r.get(
+
+const route = express.Router();
+route.get(
     "/",
     authMiddleware,
     tenantMiddleware,
     requirePermission("user.read"),
-    c.list,
+    controller.list,
 );
-r.get(
+
+route.get(
     "/:id",
     authMiddleware,
     tenantMiddleware,
     requirePermission("user.read"),
-    c.show,
+    controller.show,
 );
-export default r;
+
+export default route;

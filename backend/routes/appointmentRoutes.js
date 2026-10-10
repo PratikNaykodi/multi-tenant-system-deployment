@@ -1,49 +1,57 @@
 import express from "express";
-import * as c from "../controllers/Appointment/appointmentController.js";
+import * as controller from "../controllers/Appointment/appointmentController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { tenantMiddleware } from "../middleware/tenantMiddleware.js";
 import { requirePermission } from "../middleware/permissionMiddleware.js";
-const r = express.Router();
-r.get(
+
+const route = express.Router();
+
+route.get(
     "/options",
     authMiddleware,
     tenantMiddleware,
     requirePermission("appointment.read"),
-    c.options,
+    controller.options,
 );
-r.get(
+
+route.get(
     "/",
     authMiddleware,
     tenantMiddleware,
     requirePermission("appointment.read"),
-    c.list,
+    controller.list,
 );
-r.get(
+
+route.get(
     "/:id",
     authMiddleware,
     tenantMiddleware,
     requirePermission("appointment.read"),
-    c.show,
+    controller.show,
 );
-r.post(
+
+route.post(
     "/",
     authMiddleware,
     tenantMiddleware,
     requirePermission("appointment.create"),
-    c.create,
+    controller.create,
 );
-r.put(
+
+route.put(
     "/:id",
     authMiddleware,
     tenantMiddleware,
     requirePermission("appointment.update"),
-    c.update,
+    controller.update,
 );
-r.delete(
+
+route.delete(
     "/:id",
     authMiddleware,
     tenantMiddleware,
     requirePermission("appointment.delete"),
-    c.destroy,
+    controller.destroy,
 );
-export default r;
+
+export default route;

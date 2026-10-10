@@ -21,7 +21,7 @@ export async function createNewUser(db, input) {
         throw badRequest("Name, email, password and role are required.");
     }
     
-    // Validate role-specific data BEFORE creating the user, avoiding orphan users.
+    // Validate role-specific data BEFORE creating the user.
     if (roleId === 3 && !String(input.specialization || "").trim()) {
         throw badRequest("Specialization is required for a provider.");
     }
@@ -30,6 +30,7 @@ export async function createNewUser(db, input) {
     }
     
     const existing = await db.user.findUnique({ where: { email }, select: { id: true } });
+
     if (existing) throw conflict("This email address is already registered. Please use a different email address.");
     
     try {
@@ -149,6 +150,7 @@ export async function updateExistingUser(db, id, input) {
 
 export async function removeUser(db, id) {
     await getUser(db, id);
+    
     await repo.deleteUser(db, id);
     return { message: "User deleted successfully" };
 }

@@ -1,4 +1,5 @@
 import { createTenant } from "../../services/Tenant/tenantService.js";
+
 export async function create(req, res) {
     try {
         return res.status(201).json(await createTenant(req.body));

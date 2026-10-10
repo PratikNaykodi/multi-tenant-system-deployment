@@ -14,13 +14,21 @@ function sendError(res, error) {
 }
 
 export async function list(req, res) {
-    try { return res.json({ users: await service.getUsers(req.tenantDb) }); }
-    catch (error) { return sendError(res, error); }
+    try { 
+        return res.json({ users: await service.getUsers(req.tenantDb) }); 
+    }
+    catch (error) { 
+        return sendError(res, error); 
+    }
 }
 
 export async function show(req, res) {
-    try { return res.json({ user: await service.getUser(req.tenantDb, req.params.id) }); }
-    catch (error) { return sendError(res, error); }
+    try { 
+        return res.json({ user: await service.getUser(req.tenantDb, req.params.id) }); 
+    }
+    catch (error) { 
+        return sendError(res, error); 
+    }
 }
 
 export async function create(req, res) {
@@ -32,8 +40,12 @@ export async function create(req, res) {
             }
         }
         const user = await service.createNewUser(req.tenantDb, req.body);
+
         return res.status(201).json({ message: "User created successfully", user });
-    } catch (error) { return sendError(res, error); }
+
+    } catch (error) {
+        return sendError(res, error); 
+    }
 }
 
 export async function update(req, res) {
@@ -53,9 +65,14 @@ export async function update(req, res) {
         const input = isSelf
         ? { ...req.body, role_id: existing.roleId ?? existing.role_id ?? existing.role?.id }
         : req.body;
+
         const user = await service.updateExistingUser(req.tenantDb, id, input);
+
         return res.json({ message: "User updated successfully", user });
-    } catch (error) { return sendError(res, error); }
+
+    } catch (error) { 
+        return sendError(res, error); 
+    }
 }
 
 export async function destroy(req, res) {
@@ -71,5 +88,7 @@ export async function destroy(req, res) {
             }
         }
         return res.json(await service.removeUser(req.tenantDb, id));
-    } catch (error) { return sendError(res, error); }
+    } catch (error) { 
+        return sendError(res, error); 
+    }
 }

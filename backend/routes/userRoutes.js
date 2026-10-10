@@ -1,44 +1,50 @@
 import express from "express";
-import * as c from "../controllers/User/userController.js";
+import * as controller from "../controllers/User/userController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { tenantMiddleware } from "../middleware/tenantMiddleware.js";
 import { requirePermission } from "../middleware/permissionMiddleware.js";
 import { requireUserUpdatePermission } from "../middleware/userUpdatePermission.js";
 
-const r = express.Router();
-r.get(
+const route = express.Router();
+
+route.get(
     "/",
     authMiddleware,
     tenantMiddleware,
     requirePermission("user.read"),
-    c.list,
+    controller.list,
 );
-r.get(
+
+route.get(
     "/:id",
     authMiddleware,
     tenantMiddleware,
     requirePermission("user.read"),
-    c.show,
+    controller.show,
 );
-r.post(
+
+route.post(
     "/",
     authMiddleware,
     tenantMiddleware,
     requirePermission("user.create"),
-    c.create,
+    controller.create,
 );
-r.put(
+
+route.put(
     "/:id",
     authMiddleware,
     tenantMiddleware,
     requireUserUpdatePermission,
-    c.update,
+    controller.update,
 );
-r.delete(
+
+route.delete(
     "/:id",
     authMiddleware,
     tenantMiddleware,
     requirePermission("user.delete"),
-    c.destroy,
+    controller.destroy,
 );
-export default r;
+
+export default route;
